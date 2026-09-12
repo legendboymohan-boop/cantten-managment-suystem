@@ -4,7 +4,9 @@ require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../controllers/CartController.php';
 require_once __DIR__ . '/../../controllers/OrderController.php';
 require_once __DIR__ . '/../../controllers/PaymentController.php';
+require_once __DIR__ . '/../../controllers/Mailer.php';
 require_once __DIR__ . '/../../models/Promo.php';
+require_once __DIR__ . '/../../models/User.php';
 require_once __DIR__ . '/../../controllers/MenuController.php';
 requireCustomer();
 
@@ -14,6 +16,7 @@ $cart = new CartController();
 $orderController = new OrderController($db);
 $paymentController = new PaymentController($db);
 $promo = new Promo($db);
+$userModel = new User($db);
 $menuController = new MenuController($db);
 
 $items = [];
@@ -85,7 +88,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                 $_SESSION['checkout_otp'] = strval(random_int(1000, 9999));
                 $_SESSION['checkout_otp_expires_at'] = time() + 300;
                 $_SESSION['checkout_otp_attempts'] = 0;
-                $step = 'verify';
+
+                $customer = $userModel->findById($_SESSION['user_id']);
+                $customerEmail = $customer['email'] ?? '';
+                $customerName = $customer['name'] ?? 'Customer';
+                if ($customerEmail !== '' && !Mailer::sendOtp($customerEmail, $customerName, $_SESSION['checkout_otp'])) {
+                    unset($_SESSION['checkout_order_id'], $_SESSION['checkout_payment_id'], $_SESSION['checkout_otp'], $_SESSION['checkout_otp_expires_at'], $_SESSION['checkout_otp_attempts'], $_SESSION['checkout_promo_code']);
+                    $error = 'We could not send the verification code to your email. Please try again.';
+                    $step = 'select';
+                } else {
+                    $step = 'verify';
+                }
             }
         } elseif (isset($result)) {
             $error = $result['message'];
@@ -200,7 +213,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                         <h3>🛡 Verification</h3>
                         <span class="mini-tag">Secure payment</span>
                     </div>
-                    <p class="muted small otp-text">Enter the 4-digit OTP sent to your registered mobile number to confirm payment.</p>
+                    <p class="muted small otp-text">Enter the 4-digit OTP sent to your registered email address to confirm payment.</p>
 
                     <div class="form-group">
                         <input type="text" name="otp" maxlength="4" placeholder="••••" class="otp-input" required>
