@@ -11,6 +11,35 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+(function () {
+    $envFile = dirname(__DIR__) . '/.env';
+    if (!is_file($envFile)) {
+        return;
+    }
+
+    $lines = file($envFile, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+    if ($lines === false) {
+        return;
+    }
+
+    foreach ($lines as $line) {
+        $trimmed = trim($line);
+        if ($trimmed === '' || str_starts_with($trimmed, '#')) {
+            continue;
+        }
+
+        [$key, $value] = array_pad(explode('=', $trimmed, 2), 2, '');
+        $key = trim((string)$key);
+        $value = trim((string)$value, " \t\n\r\0\x0B\"'");
+
+        if ($key !== '') {
+            putenv($key . '=' . $value);
+            $_ENV[$key] = $value;
+            $_SERVER[$key] = $value;
+        }
+    }
+})();
+
 $scriptDirectory = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
 $baseUrl = preg_replace('#/views(?:/[^/]+){1,2}$#', '', $scriptDirectory);
 define('BASE_URL', $baseUrl === '/' ? '' : rtrim($baseUrl, '/'));
@@ -125,6 +154,17 @@ function esewaConfig() {
         'secret_key' => getenv('CANTEEN_ESEWA_SECRET_KEY') ?: '',
         'payment_url' => getenv('CANTEEN_ESEWA_PAYMENT_URL') ?: 'https://rc-epay.esewa.com.np/api/epay/main/v2/form',
         'status_url' => getenv('CANTEEN_ESEWA_STATUS_URL') ?: 'https://rc-epay.esewa.com.np/api/epay/transaction/status/',
+    ];
+}
+
+function mailConfig() {
+    return [
+        'host' => getenv('CANTEEN_MAIL_HOST') ?: 'smtp.gmail.com',
+        'port' => getenv('CANTEEN_MAIL_PORT') ?: '587',
+        'username' => getenv('CANTEEN_MAIL_USERNAME') ?: '',
+        'password' => getenv('CANTEEN_MAIL_PASSWORD') ?: '',
+        'from_email' => getenv('CANTEEN_MAIL_FROM') ?: '',
+        'from_name' => getenv('CANTEEN_MAIL_FROM_NAME') ?: 'Canteen',
     ];
 }
 
