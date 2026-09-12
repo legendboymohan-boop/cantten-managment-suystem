@@ -1,6 +1,6 @@
 -- CanteenPro Database Schema
-CREATE DATABASE IF NOT EXISTS canteen_management_db;
-USE canteen_management_db;
+CREATE DATABASE IF NOT EXISTS canteen_db;
+USE canteen_db;
 
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
