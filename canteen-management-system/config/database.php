@@ -8,7 +8,7 @@ class Database {
 
     public function __construct() {
         $this->host = getenv('CANTEEN_DB_HOST') ?: 'localhost';
-        $this->db_name = getenv('CANTEEN_DB_NAME') ?: 'canteen_management_db';
+        $this->db_name = getenv('CANTEEN_DB_NAME') ?: 'canteen_db';
         $this->username = getenv('CANTEEN_DB_USER') ?: 'root';
         $this->password = getenv('CANTEEN_DB_PASSWORD') ?: '';
     }
