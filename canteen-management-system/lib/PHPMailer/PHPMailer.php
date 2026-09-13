@@ -17,6 +17,7 @@ class PHPMailer
     public $Body = '';
     public $AltBody = '';
     public $ErrorInfo = '';
+    public $exceptions = false;
     private $smtpMode = false;
 
     public function __construct($exceptions = false)
