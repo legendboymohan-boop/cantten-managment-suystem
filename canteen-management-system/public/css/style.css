@@ -1253,6 +1253,26 @@ h3 {
     box-shadow: var(--card-shadow);
 }
 
+.report-chart-grid,
+.report-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+    margin: 20px 0;
+}
+
+.report-chart {
+    min-height: 320px;
+}
+
+.report-chart-small {
+    min-height: 280px;
+}
+
+.report-table-card {
+    margin-top: 20px;
+}
+
 .popular-items-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -1498,7 +1518,9 @@ textarea:focus {
     .profile-layout,
     .reservation-layout,
     .admin-panels,
-    .popular-items-grid {
+        .popular-items-grid,
+        .report-chart-grid,
+        .report-detail-grid {
         grid-template-columns: 1fr;
     }
 
