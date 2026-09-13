@@ -43,8 +43,43 @@ class ReservationController {
         return $this->reservationModel->findByUser($userId);
     }
 
+    public function reservation($reservationId, $userId) {
+        requireCustomer();
+        return $this->reservationModel->findOwnedById($reservationId, $userId);
+    }
+
+    public function payDeposit($userId, $reservationId, $method) {
+        requireCustomer();
+        return $this->reservationModel->payDeposit($reservationId, $userId, $method);
+    }
+
+    public function cancel($userId, $reservationId) {
+        requireCustomer();
+        return $this->reservationModel->cancel($reservationId, $userId);
+    }
+
+    public function adminAll() {
+        requireReservationManagement();
+        return $this->reservationModel->all();
+    }
+
+    public function adminCancel($reservationId, $paymentOutcome) {
+        requireReservationManagement();
+        return $this->reservationModel->adminCancel($reservationId, $paymentOutcome);
+    }
+
+    public function adminUpdate($reservationId, $tableId, $date, $start, $end, $guests, $status) {
+        requireReservationManagement();
+        return $this->reservationModel->adminUpdate($reservationId, $tableId, $date, $start, $end, $guests, $status);
+    }
+
+    public function allTables() {
+        requireReservationManagement();
+        return $this->tableModel->all();
+    }
+
     public function updateStatus($id, $status) {
-        requireAdmin();
+        requireReservationManagement();
         return $this->reservationModel->updateStatus($id, $status);
     }
 }
