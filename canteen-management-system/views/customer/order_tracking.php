@@ -66,10 +66,14 @@ $isCancelled = $order['status'] === 'cancelled';
     </div>
     <?php endif; ?>
 
-    <?php if ($order['status'] === 'completed'): ?>
+    <?php if (!$isCancelled): ?>
         <div class="card review-form-card">
             <h3>Would you like to rate your experience?</h3>
-            <p class="muted">Rate the waiter and Chef who handled this order, or skip the review.</p>
+            <?php if ($order['status'] === 'completed'): ?>
+                <p class="muted">Rate the waiter and Chef who handled this order, or skip the review.</p>
+            <?php else: ?>
+                <p class="muted">You can rate the waiter and Chef who handled this order after it is completed, or skip the review.</p>
+            <?php endif; ?>
             <a class="btn-primary" href="<?= BASE_URL ?>/views/customer/review.php?token=<?= rawurlencode($order['public_review_token']) ?>">Rate now or skip</a>
         </div>
     <?php endif; ?>
