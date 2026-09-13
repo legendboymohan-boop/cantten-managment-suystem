@@ -3,6 +3,7 @@ require_once __DIR__ . '/../lib/PHPMailer/Exception.php';
 require_once __DIR__ . '/../lib/PHPMailer/SMTP.php';
 require_once __DIR__ . '/../lib/PHPMailer/PHPMailer.php';
 
+use PHPMailer\PHPMailer\Exception;
 use PHPMailer\PHPMailer\PHPMailer;
 
 class Mailer
@@ -12,6 +13,8 @@ class Mailer
         $config = mailConfig();
 
         $mail = new PHPMailer(true);
+        $mail->SMTPDebug = 2;
+        $mail->Debugoutput = 'error_log';
         $mail->isSMTP();
         $mail->Host = $config['host'];
         $mail->SMTPAuth = true;
@@ -25,6 +28,11 @@ class Mailer
         $mail->Body = "Your OTP for checkout is {$otp}. It is valid for 5 minutes.";
         $mail->AltBody = "Your OTP for checkout is {$otp}. It is valid for 5 minutes.";
 
-        return $mail->send();
+        try {
+            return $mail->send();
+        } catch (Exception $e) {
+            error_log('PHPMailer error: ' . $mail->ErrorInfo . ' | Exception: ' . $e->getMessage());
+            return false;
+        }
     }
 }
