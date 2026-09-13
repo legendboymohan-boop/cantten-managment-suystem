@@ -54,9 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf() && isset($_POST['pay_d
         <?= csrfField() ?>
         <input type="hidden" name="reservation_id" value="<?= (int)$reservation['id'] ?>">
         <h3>Choose payment method</h3>
-        <label class="payment-option"><input type="radio" name="payment_method" value="esewa" checked><span>eSewa</span></label>
-        <label class="payment-option"><input type="radio" name="payment_method" value="khalti"><span>Khalti</span></label>
-        <label class="payment-option"><input type="radio" name="payment_method" value="cash"><span>Pay at counter (cash)</span></label>
+        <div class="payment-methods">
+            <label class="payment-option"><input type="radio" name="payment_method" value="esewa" checked><span>eSewa</span></label>
+            <label class="payment-option"><input type="radio" name="payment_method" value="khalti"><span>Khalti</span></label>
+            <label class="payment-option"><input type="radio" name="payment_method" value="cash"><span>Pay at counter (cash)</span></label>
+        </div>
         <button type="submit" name="pay_deposit" class="btn-primary btn-block">Pay deposit</button>
     </form>
 </main>
