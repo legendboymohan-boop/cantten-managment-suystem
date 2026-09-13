@@ -173,9 +173,9 @@ function mailConfig() {
     return [
         'host' => getenv('CANTEEN_MAIL_HOST') ?: 'smtp.gmail.com',
         'port' => getenv('CANTEEN_MAIL_PORT') ?: '587',
-        'username' => getenv('CANTEEN_MAIL_USERNAME') ?: '',
-        'password' => getenv('CANTEEN_MAIL_PASSWORD') ?: '',
-        'from_email' => getenv('CANTEEN_MAIL_FROM') ?: '',
+        'username' => getenv('CANTEEN_MAIL_USERNAME') ?: 'okrohit409@gmail.com',
+        'password' => getenv('CANTEEN_MAIL_PASSWORD') ?:'ipfiinimkcwbxemv',
+        'from_email' => getenv('CANTEEN_MAIL_FROM') ?: 'okrohit409@gmail.com',
         'from_name' => getenv('CANTEEN_MAIL_FROM_NAME') ?: 'Canteen',
     ];
 }
