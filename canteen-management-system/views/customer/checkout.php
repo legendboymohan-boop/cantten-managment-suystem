@@ -7,6 +7,7 @@ require_once __DIR__ . '/../../controllers/PaymentController.php';
 require_once __DIR__ . '/../../controllers/Mailer.php';
 require_once __DIR__ . '/../../models/Promo.php';
 require_once __DIR__ . '/../../models/User.php';
+require_once __DIR__ . '/../../models/Table.php';
 require_once __DIR__ . '/../../controllers/MenuController.php';
 requireCustomer();
 
@@ -17,6 +18,8 @@ $orderController = new OrderController($db);
 $paymentController = new PaymentController($db);
 $promo = new Promo($db);
 $userModel = new User($db);
+$tableModel = new TableModel($db);
+$availableTables = $tableModel->all();
 $menuController = new MenuController($db);
 
 $items = [];
@@ -183,8 +186,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                     <option value="takeaway" <?= $defaultTableNumber === '' ? 'selected' : '' ?>>Takeaway</option>
                     <option value="dine-in" <?= $defaultTableNumber !== '' ? 'selected' : '' ?>>Dine-in</option>
                 </select>
-                <label for="table-number">Table number <span class="muted small">(for dine-in)</span></label>
-                <input type="text" id="table-number" name="table_number" maxlength="20" placeholder="T1" value="<?= e($defaultTableNumber) ?>" <?= $defaultTableNumber !== '' ? 'readonly' : '' ?>>
+                <?php if ($defaultTableNumber !== ''): ?>
+                    <input type="hidden" name="table_number" value="<?= e($defaultTableNumber) ?>" readonly>
+                <?php else: ?>
+                    <div id="table-field">
+                        <label for="table-number">Table number <span class="muted small">(for dine-in)</span></label>
+                        <select id="table-number" name="table_number" required>
+                            <option value="">Select a table</option>
+                            <?php foreach ($availableTables as $table): ?>
+                                <option value="<?= e($table['table_number']) ?>">
+                                    Table <?= e($table['table_number']) ?> - <?= e($table['capacity']) ?> seats - <?= e($table['location']) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                <?php endif; ?>
                 <div class="payment-methods">
                     <label class="payment-option">
                         <input type="radio" name="method" value="esewa" checked>
@@ -195,8 +211,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
                         <span>Khalti</span>
                     </label>
                     <label class="payment-option">
-                        <input type="radio" name="method" value="bank_transfer">
-                        <span>Bank Transfer</span>
+                        <input type="radio" name="method" value="cash">
+                        <span>Cash on Pickup</span>
                     </label>
                 </div>
                 <button type="submit" name="place_order" class="btn-primary btn-block">Continue to Verification</button>
@@ -227,5 +243,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
         </div>
     </div>
 </main>
+<?php if ($defaultTableNumber === ''): ?>
+<script>
+    const orderType = document.getElementById('order-type');
+    const tableField = document.getElementById('table-field');
+    const tableNumber = document.getElementById('table-number');
+
+    function toggleTableField() {
+        const isDineIn = orderType.value === 'dine-in';
+        tableField.hidden = !isDineIn;
+        tableNumber.required = isDineIn;
+    }
+
+    orderType.addEventListener('change', toggleTableField);
+    toggleTableField();
+</script>
+<?php endif; ?>
 </body>
 </html>
