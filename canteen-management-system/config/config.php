@@ -148,6 +148,16 @@ function requireCashierPayments() {
     }
 }
 
+function canManageReservations() {
+    return isAdmin() || staffRoleIs(['manager']);
+}
+
+function requireReservationManagement() {
+    if (!canManageReservations()) {
+        redirect(isLoggedIn() ? staffDashboardPath() : 'staff_login.php');
+    }
+}
+
 function esewaConfig() {
     return [
         'merchant_code' => getenv('CANTEEN_ESEWA_MERCHANT_CODE') ?: 'EPAYTEST',
