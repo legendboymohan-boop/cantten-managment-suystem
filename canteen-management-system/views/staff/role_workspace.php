@@ -3,6 +3,7 @@ require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../config/database.php';
 require_once __DIR__ . '/../../models/StaffWorkspace.php';
 require_once __DIR__ . '/../../models/Ingredient.php';
+require_once __DIR__ . '/../../models/Table.php';
 require_once __DIR__ . '/../../controllers/EsewaController.php';
 requireStaff();
 
@@ -10,6 +11,7 @@ $database = new Database();
 $db = $database->connect();
 $workspace = new StaffWorkspace($db);
 $ingredientModel = new Ingredient($db);
+$reservationModel = new Reservation($db);
 $staff = isAdmin() ? [
     'id' => 0,
     'staff_name' => $_SESSION['name'] ?? 'Admin',
@@ -72,6 +74,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $reviewLink = BASE_URL . '/views/customer/review.php?token=' . rawurlencode($reviewToken);
             }
         }
+    } elseif (isset($_POST['collect_reservation_deposit'])) {
+        if ($role === 'cashier' || staffHasRole(['manager', 'admin'])) {
+            $message = $reservationModel->collectCashDeposit($_POST['reservation_id'] ?? 0) ? 'Reservation deposit collected.' : 'This reservation deposit could not be collected.';
+        } else {
+            $error = 'You are not authorized to collect reservation deposits.';
+        }
     }
 }
 
@@ -94,6 +102,8 @@ if (!in_array($financePeriod, ['today', 'week', 'month'], true)) {
 $periodStart = $financePeriod === 'today' ? $today : ($financePeriod === 'week' ? date('Y-m-d', strtotime('monday this week')) : date('Y-m-01'));
 $finance = $role === 'finance' || staffHasRole(['manager', 'admin']) ? $workspace->financeSummary($periodStart, $today) : null;
 $costs = $finance ? $workspace->costs($periodStart, $today) : [];
+$pendingReservationDeposits = $role === 'cashier' || staffHasRole(['manager', 'admin']) ? $reservationModel->pendingCashDeposits() : [];
+$reservationDeposits = $finance ? $reservationModel->paidDepositsSummary($periodStart, $today) : ['total' => 0, 'rows' => []];
 $queueLabel = $role === 'cook' ? 'Kitchen queue' : 'Live order queue';
 $allowedQueueStatuses = $role === 'cook' ? ['preparing', 'ready'] : ['completed'];
 ?>
@@ -144,7 +154,8 @@ $allowedQueueStatuses = $role === 'cook' ? ['preparing', 'ready'] : ['completed'
             </div>
             <?php endif; ?>
 
-            <?php if ($role === 'cashier'): ?>
+            <?php if ($role === 'cashier' || staffHasRole(['manager', 'admin'])): ?>
+            <div class="card staff-feature-panel"><div class="staff-toolbar"><div><h2>Reservation deposits due at counter</h2><p class="muted small">Collect unpaid cash deposits from customers.</p></div></div><table class="data-table"><thead><tr><th>Customer</th><th>Table</th><th>Date/time</th><th>Amount</th><th>Action</th></tr></thead><tbody><?php foreach ($pendingReservationDeposits as $deposit): ?><tr><td><?= e($deposit['customer_name']) ?><div class="muted small"><?= e($deposit['customer_email']) ?></div></td><td><?= e($deposit['table_number']) ?></td><td><?= e($deposit['reservation_date']) ?><div class="muted small"><?= date('g:i A', strtotime($deposit['start_time'])) ?></div></td><td>$<?= number_format((float)$deposit['deposit_amount'], 2) ?></td><td><form method="POST"><input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>"><input type="hidden" name="reservation_id" value="<?= (int)$deposit['id'] ?>"><button class="btn-small btn-primary" name="collect_reservation_deposit">Collect payment</button></form></td></tr><?php endforeach; ?><?php if (!$pendingReservationDeposits): ?><tr><td colspan="5" class="muted center">No reservation deposits due at the counter.</td></tr><?php endif; ?></tbody></table></div>
             <div class="card staff-feature-panel"><div class="staff-toolbar"><div><h2>Open orders for billing</h2><p class="muted small">Finalize a bill when payment is received.</p></div></div>
                 <table class="data-table"><thead><tr><th>Order</th><th>Table</th><th>Items</th><th>Status</th><th>Total</th><th>Payment</th></tr></thead><tbody>
                 <?php foreach ($cashierOrders as $order): ?><tr><td>#<?= e($order['order_number']) ?></td><td><?= e($order['table_number'] ?: 'Takeaway') ?></td><td><?= e($order['item_summary']) ?></td><td><span class="status-pill status-<?= e($order['status']) ?>"><?= e(ucfirst($order['status'])) ?></span></td><td>$<?= number_format((float)$order['total_amount'], 2) ?></td><td><form method="POST" class="row-between"><input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>"><input type="hidden" name="order_id" value="<?= (int)$order['id'] ?>"><select name="payment_method"><option value="cash">Cash</option><option value="card">Card</option><option value="esewa">eSewa</option></select><button class="btn-small btn-primary" name="cashier_finalize">Take payment</button></form></td></tr><?php endforeach; ?>
@@ -159,7 +170,8 @@ $allowedQueueStatuses = $role === 'cook' ? ['preparing', 'ready'] : ['completed'
             <div class="card staff-feature-panel"><div class="staff-toolbar"><div><h2>Receiving log</h2><p class="muted small">Record incoming stock and mark it received.</p></div></div><form method="POST" class="grid-form staff-inline-form"><input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>"><input name="supplier" placeholder="Supplier" required><input name="items_received" placeholder="Items received" required><input type="number" name="quantity" min="1" placeholder="Quantity" required><button class="btn-primary" name="delivery_add">Add delivery</button></form><table class="data-table"><thead><tr><th>Supplier</th><th>Items</th><th>Qty</th><th>Status</th><th>Time</th><th>Action</th></tr></thead><tbody><?php foreach ($deliveries as $delivery): ?><tr><td><?= e($delivery['supplier']) ?></td><td><?= e($delivery['items_received']) ?></td><td><?= (int)$delivery['quantity'] ?></td><td><span class="status-pill status-<?= e($delivery['status']) ?>"><?= e(ucfirst($delivery['status'])) ?></span></td><td><?= date('M d, g:i A', strtotime($delivery['created_at'])) ?></td><td><?php if ($delivery['status'] === 'pending'): ?><form method="POST"><input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>"><input type="hidden" name="delivery_id" value="<?= (int)$delivery['id'] ?>"><button class="btn-small btn-confirm" name="delivery_receive">Mark received</button></form><?php else: ?><span class="muted small"><?= e($delivery['received_by_name'] ?? '') ?></span><?php endif; ?></td></tr><?php endforeach; ?></tbody></table></div>
             <?php endif; ?>
 
-            <?php if ($role === 'finance'): ?>
+            <?php if ($role === 'finance' || staffHasRole(['manager', 'admin'])): ?>
+            <div class="card staff-feature-panel"><div class="staff-toolbar"><div><h2>Reservation deposits</h2><p class="muted small">Paid reservation deposits for <?= e($periodStart) ?> to <?= e($today) ?>.</p></div></div><div class="finance-summary"><div><span class="muted small">Deposit revenue</span><strong>$<?= number_format((float)$reservationDeposits['total'], 2) ?></strong></div></div><table class="data-table"><thead><tr><th>Customer</th><th>Table</th><th>Date</th><th>Amount</th><th>Method</th></tr></thead><tbody><?php foreach ($reservationDeposits['rows'] as $deposit): ?><tr><td><?= e($deposit['customer_name']) ?></td><td><?= e($deposit['table_number']) ?></td><td><?= e($deposit['reservation_date']) ?></td><td>$<?= number_format((float)$deposit['deposit_amount'], 2) ?></td><td><?= e(ucfirst($deposit['payment_method'])) ?></td></tr><?php endforeach; ?><?php if (!$reservationDeposits['rows']): ?><tr><td colspan="5" class="muted center">No paid reservation deposits in this period.</td></tr><?php endif; ?></tbody></table></div>
             <div class="card staff-feature-panel"><div class="staff-toolbar"><div><h2>Revenue and costs</h2><p class="muted small"><?= e(ucfirst($financePeriod)) ?>: <?= e($periodStart) ?> to <?= e($today) ?></p></div><form method="GET"><select name="period" onchange="this.form.submit()"><option value="today" <?= $financePeriod === 'today' ? 'selected' : '' ?>>Today</option><option value="week" <?= $financePeriod === 'week' ? 'selected' : '' ?>>This week</option><option value="month" <?= $financePeriod === 'month' ? 'selected' : '' ?>>This month</option></select></form></div><div class="finance-summary"><div><span class="muted small">Revenue</span><strong>$<?= number_format($finance['revenue'], 2) ?></strong></div><div><span class="muted small">Costs</span><strong>$<?= number_format($finance['total_costs'], 2) ?></strong></div><div><span class="muted small">Net profit</span><strong>$<?= number_format($finance['revenue'] - $finance['total_costs'], 2) ?></strong></div></div><h3>Costs by department</h3><table class="data-table"><thead><tr><th>Department</th><th>Total</th></tr></thead><tbody><?php foreach ($finance['by_department'] as $cost): ?><tr><td><?= e($cost['department']) ?></td><td>$<?= number_format((float)$cost['total'], 2) ?></td></tr><?php endforeach; ?></tbody></table><h3>Cost line items</h3><table class="data-table"><thead><tr><th>Category</th><th>Department</th><th>Amount</th><th>Date</th></tr></thead><tbody><?php foreach ($costs as $cost): ?><tr><td><?= e($cost['category']) ?></td><td><?= e($cost['department']) ?></td><td>$<?= number_format((float)$cost['amount'], 2) ?></td><td><?= e($cost['cost_date']) ?></td></tr><?php endforeach; ?></tbody></table><h3>Record operating cost</h3><form method="POST" class="grid-form staff-inline-form"><input type="hidden" name="csrf_token" value="<?= e($csrfToken) ?>"><input name="category" placeholder="Category" required><input name="department" placeholder="Department" value="Finance" required><input type="number" step="0.01" min="0" name="amount" placeholder="Amount" required><input type="date" name="cost_date" value="<?= e($today) ?>" required><input name="notes" placeholder="Notes"><button class="btn-primary" name="cost_add">Add cost</button></form></div>
             <?php endif; ?>
 
