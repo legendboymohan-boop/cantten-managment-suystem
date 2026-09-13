@@ -97,11 +97,13 @@ function staffDashboardPath() {
         return 'views/admin/dashboard.php';
     }
     $paths = [
+        'manager' => 'views/staff/role_workspace.php',
         'cashier' => 'views/staff/cashier.php',
         'cook' => 'views/staff/chef.php',
         'waiter' => 'views/staff/waiter.php',
         'inventory' => 'views/staff/inventory.php',
         'finance' => 'views/staff/finance.php',
+        'cleaner' => 'views/staff/cleaner.php',
     ];
     return $paths[currentStaffRole()] ?? 'views/staff/dashboard.php';
 }
