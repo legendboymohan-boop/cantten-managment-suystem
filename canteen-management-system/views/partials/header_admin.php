@@ -2,6 +2,12 @@
 $current = basename($_SERVER['PHP_SELF']);
 ?>
 <aside class="admin-sidebar">
+    <div class="admin-top-actions">
+        <form method="POST" action="<?= BASE_URL ?>/logout.php">
+            <?= csrfField('logout_csrf') ?>
+            <button type="submit" class="logout-button">🚪 Logout</button>
+        </form>
+    </div>
     <div class="admin-user">
         <div class="avatar-circle">👤</div>
         <div>
@@ -27,10 +33,4 @@ $current = basename($_SERVER['PHP_SELF']);
         <a href="<?= BASE_URL ?>/views/admin/table_qr_codes.php" class="<?= $current === 'table_qr_codes.php' ? 'active' : '' ?>">▦ Table QR Codes</a>
     </nav>
 
-    <div class="sidebar-footer">
-        <form method="POST" action="<?= BASE_URL ?>/logout.php">
-            <?= csrfField('logout_csrf') ?>
-            <button type="submit" class="logout-button">🚪 Logout</button>
-        </form>
-    </div>
 </aside>
