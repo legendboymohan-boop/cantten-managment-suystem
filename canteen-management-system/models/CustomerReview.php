@@ -15,7 +15,7 @@ class CustomerReview {
     }
 
     public function orderForToken($token) {
-        $stmt = $this->conn->prepare("SELECT o.* FROM orders o INNER JOIN payments p ON p.order_id = o.id AND p.status = 'success' WHERE o.public_review_token = ? AND o.status = 'completed' LIMIT 1");
+        $stmt = $this->conn->prepare("SELECT o.* FROM orders o INNER JOIN payments p ON p.order_id = o.id AND p.status = 'success' WHERE o.public_review_token = ? AND o.status != 'cancelled' LIMIT 1");
         $stmt->execute([trim((string)$token)]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
