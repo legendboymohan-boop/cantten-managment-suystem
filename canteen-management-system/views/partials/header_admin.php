@@ -20,6 +20,7 @@ $current = basename($_SERVER['PHP_SELF']);
         <a href="<?= BASE_URL ?>/views/admin/staff_payroll.php" class="<?= $current === 'staff_payroll.php' ? 'active' : '' ?>">💰 Staff Salary</a>
         <a href="<?= BASE_URL ?>/views/admin/menu_management.php" class="<?= $current === 'menu_management.php' ? 'active' : '' ?>">🍽️ Menu Management</a>
         <a href="<?= BASE_URL ?>/views/admin/orders.php" class="<?= $current === 'orders.php' ? 'active' : '' ?>">🧾 Orders</a>
+        <a href="<?= BASE_URL ?>/views/admin/report.php" class="<?= $current === 'report.php' ? 'active' : '' ?>">📈 Reports</a>
         <a href="<?= BASE_URL ?>/views/admin/reservations.php" class="<?= $current === 'reservations.php' ? 'active' : '' ?>">📅 Reservations</a>
         <a href="<?= BASE_URL ?>/views/admin/transactions.php" class="<?= $current === 'transactions.php' ? 'active' : '' ?>">💳 Transactions</a>
         <a href="<?= BASE_URL ?>/views/admin/recipes.php" class="<?= $current === 'recipes.php' ? 'active' : '' ?>">🧪 Recipes</a>
