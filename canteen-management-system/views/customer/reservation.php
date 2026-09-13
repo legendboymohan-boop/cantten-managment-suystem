@@ -19,16 +19,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && verifyCsrf()) {
     $guests = Validator::integer($_POST['guests'] ?? null, 1, 8);
     $tableId = Validator::tableId($_POST['table_id'] ?? null);
     if (isset($_POST['confirm']) && $date !== false && $time !== false && $guests !== false && $tableId !== false) {
-        if ($reservationController->book($_SESSION['user_id'], $tableId, $date, $time, $guests)) {
+        $newReservationId = $reservationController->book($_SESSION['user_id'], $tableId, $date, $time, $guests);
+        if ($newReservationId) {
             flash('success', 'Table reserved successfully!');
-            redirect('views/customer/profile.php');
+            redirect('views/customer/reservation_payment.php?id=' . $newReservationId);
         }
         $message = 'That table is unavailable, too small, or the reservation details are invalid.';
+    }
+    if (isset($_POST['cancel_reservation'])) {
+        $reservationId = Validator::positiveInteger($_POST['reservation_id'] ?? null);
+        $outcome = $reservationId === false ? false : $reservationController->cancel($_SESSION['user_id'], $reservationId);
+        if ($outcome === 'refunded') {
+            flash('success', 'Reservation cancelled. Your deposit will be refunded.');
+        } elseif ($outcome === 'forfeited') {
+            flash('success', 'Reservation cancelled. The deposit was forfeited because it was cancelled within the free-cancel window.');
+        } elseif ($outcome === 'no_charge') {
+            flash('success', 'Reservation cancelled with no charge.');
+        } else {
+            flash('error', 'That reservation could not be cancelled.');
+        }
+        redirect('views/customer/reservation.php');
     }
 }
 
 $tables = $reservationController->availableTables($date, $time);
 $myReservations = $reservationController->myReservations($_SESSION['user_id']);
+$flashSuccess = flash('success');
+$flashError = flash('error');
 $myConfirmedTableIds = [];
 foreach ($myReservations as $reservation) {
     $selectedTime = strtotime($date . ' ' . $time . ':00');
@@ -54,6 +71,9 @@ foreach ($myReservations as $reservation) {
         <div class="card">
             <h2>Book a Table</h2>
             <p class="muted small">Select your details to view available tables.</p>
+            <p class="muted small">A $<?= number_format(Reservation::DEPOSIT_AMOUNT, 2) ?> deposit is required. Paid deposits are refundable when cancelled at least <?= Reservation::FREE_CANCEL_HOURS ?> hours before the booking.</p>
+            <?php if ($flashSuccess): ?><div class="alert alert-success"><?= e($flashSuccess) ?></div><?php endif; ?>
+            <?php if ($flashError): ?><div class="alert alert-error"><?= e($flashError) ?></div><?php endif; ?>
             <form method="GET" id="filter-form">
                 <label>Date</label>
                 <input type="date" name="date" value="<?= e($date) ?>" onchange="document.getElementById('filter-form').submit()">
@@ -97,6 +117,22 @@ foreach ($myReservations as $reservation) {
                             <span class="status-pill status-<?= e($reservation['status']) ?>">
                                 <?= $reservation['status'] === 'confirmed' ? 'Reserved' : ucfirst($reservation['status']) ?>
                             </span>
+                            <div class="muted small">Deposit: $<?= number_format((float)$reservation['deposit_amount'], 2) ?>
+                                <span class="status-pill status-<?= e($reservation['payment_status']) ?>">
+                                    <?= ['unpaid' => 'Deposit due', 'paid' => 'Deposit paid', 'refunded' => 'Deposit refunded', 'forfeited' => 'Deposit forfeited'][$reservation['payment_status']] ?? ucfirst($reservation['payment_status']) ?>
+                                </span>
+                            </div>
+                            <?php if ($reservation['payment_status'] === 'unpaid' && !in_array($reservation['status'], ['cancelled', 'completed'], true)): ?>
+                                <a class="link" href="<?= BASE_URL ?>/views/customer/reservation_payment.php?id=<?= (int)$reservation['id'] ?>">Pay deposit</a>
+                            <?php endif; ?>
+                            <?php if (!in_array($reservation['status'], ['cancelled', 'completed'], true)): ?>
+                                <?php $hoursUntil = (strtotime($reservation['reservation_date'] . ' ' . $reservation['start_time']) - time()) / 3600; ?>
+                                <form method="POST" style="margin-top:8px;" onsubmit="return confirm('<?= $hoursUntil < Reservation::FREE_CANCEL_HOURS ? 'This cancellation is within the free-cancel window and a paid deposit may be forfeited. ' : '' ?>Cancel this reservation?');">
+                                    <?= csrfField() ?>
+                                    <input type="hidden" name="reservation_id" value="<?= (int)$reservation['id'] ?>">
+                                    <button type="submit" name="cancel_reservation" class="btn-secondary btn-small">Cancel reservation</button>
+                                </form>
+                            <?php endif; ?>
                         </div>
                     <?php endforeach; ?>
                 <?php endif; ?>
